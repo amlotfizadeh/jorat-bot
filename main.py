@@ -238,12 +238,12 @@ async def set_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     game = get_game(chat_id)
 
     # فقط سازنده اجازه تغییر تنظیمات را دارد
-    if game['creator'] != user_id:
-        await update.message.reply_text("فقط سازنده بازی می‌تواند تنظیمات را تغییر دهد.")
-        return
+    #if game['creator'] != user_id:
+        #await update.message.reply_text("فقط سازنده بازی می‌تواند تنظیمات را تغییر دهد.")
+        #return
 
     keyboard = [
-        #[InlineKeyboardButton("افزودن سوال جدید", callback_data='set_افزودن_سوال')],  # حذف شد
+        [InlineKeyboardButton("افزودن سوال جدید", callback_data='set_افزودن_سوال')],
         [InlineKeyboardButton(f"تعیین تعداد تغییر سوال (فعلی: {game.get('change_limit', DEFAULT_CHANGE_LIMIT)})", callback_data='set_تغییر_تعداد')],
         [InlineKeyboardButton("پاک کردن بازی", callback_data='set_پاک_کردن_بازی')]
     ]
@@ -256,11 +256,19 @@ async def set_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     chat_id = query.message.chat_id
     game = get_game(chat_id)
 
-    if user_id != game['creator']:
-        await query.answer("فقط سازنده بازی اجازه استفاده از این پنل را دارد.", show_alert=True)
-        return
+    #if user_id != game['creator']:
+        #await query.answer("فقط سازنده بازی اجازه استفاده از این پنل را دارد.", show_alert=True)
+        #return
 
-    if query.data == 'set_تغییر_تعداد':
+    if query.data == 'set_افزودن_سوال':
+        keyboard = [
+            [InlineKeyboardButton("اضافه کردن به حقیقت", callback_data='اضافه_حقیقت')],
+            [InlineKeyboardButton("اضافه کردن به جرأت", callback_data='اضافه_جرأت')]
+        ]
+        await query.message.edit_text("کدام دسته سوال را می‌خواهید اضافه کنید؟", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.answer()
+
+    elif query.data == 'set_تغییر_تعداد':
         await query.message.edit_text("لطفاً تعداد دفعات مجاز تغییر سوال را (عدد صحیح) ارسال کنید:")
         user_states[user_id] = {"setting_change_limit": True}
         await query.answer()
@@ -269,11 +277,6 @@ async def set_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         games.pop(chat_id, None)
         await query.message.edit_text("بازی پاک شد. می‌توانید بازی جدید بسازید.")
         await query.answer()
-
-    else:
-        await query.answer()  # برای دیگر داده‌ها پاسخی ندهد
-
-
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
@@ -315,39 +318,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # حذف کامل دستورات /add و /clear
 
-# اضافه کردن دستور /add برای اضافه کردن سوال (برای همه)
-async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("اضافه کردن به حقیقت", callback_data='اضافه_حقیقت')],
-        [InlineKeyboardButton("اضافه کردن به جرأت", callback_data='اضافه_جرأت')],
-        [InlineKeyboardButton("لغو", callback_data='add_لغو')]
-    ]
-    await update.message.reply_text("کدام دسته سوال را می‌خواهید اضافه کنید؟", reply_markup=InlineKeyboardMarkup(keyboard))
-
-
-# هندلر دکمه‌های اضافه کردن سوال (مستقل از set)
-async def add_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-
-    if query.data == 'اضافه_حقیقت':
-        user_states[user_id] = {"adding_to": "truth"}
-        await query.message.edit_text("لطفاً سوال جدید حقیقت را ارسال کنید:")
-        await query.answer()
-
-    elif query.data == 'اضافه_جرأت':
-        user_states[user_id] = {"adding_to": "dare"}
-        await query.message.edit_text("لطفاً سوال جدید جرأت را ارسال کنید:")
-        await query.answer()
-
-    elif query.data == 'add_لغو':
-        user_states.pop(user_id, None)
-        await query.message.edit_text("عملیات اضافه کردن سوال لغو شد.")
-        await query.answer()
-
-    else:
-        await query.answer()
-
 # پایان بازی
 async def finish_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -380,7 +350,7 @@ async def finish_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.message.delete()
 
-# ثبت هندلرها با تغییرات جدید
+# ثبت هندلرها
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -393,15 +363,13 @@ def main():
     app.add_handler(CallbackQueryHandler(answered, pattern="^جواب_دادم$"))
 
     app.add_handler(CommandHandler("set", set_command))
-    app.add_handler(CallbackQueryHandler(set_button_handler, pattern="^set_.*$|^set_پاک_کردن_بازی$"))
-
-    # هندلرهای مربوط به اضافه کردن سوال (مستقل)
-    app.add_handler(CommandHandler("add", add_command))
-    app.add_handler(CallbackQueryHandler(add_button_handler, pattern="^اضافه_.*$|^add_لغو$"))
-
+    app.add_handler(CallbackQueryHandler(set_button_handler, pattern="^set_.*$|^اضافه_.*$|^set_پاک_کردن_بازی$"))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
 
     app.add_handler(CommandHandler("finish", finish_command))
     app.add_handler(CallbackQueryHandler(finish_confirm, pattern="^(تأیید_پایان|لغو_پایان)$"))
 
     app.run_polling()
+
+if __name__ == '__main__':
+    main()
