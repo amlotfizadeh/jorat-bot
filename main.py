@@ -256,9 +256,9 @@ async def set_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     chat_id = query.message.chat_id
     game = get_game(chat_id)
 
-    if user_id != game['creator']:
-        await query.answer("فقط سازنده بازی اجازه استفاده از این پنل را دارد.", show_alert=True)
-        return
+    #if user_id != game['creator']:
+        #await query.answer("فقط سازنده بازی اجازه استفاده از این پنل را دارد.", show_alert=True)
+        #return
 
     if query.data == 'set_افزودن_سوال':
         keyboard = [
