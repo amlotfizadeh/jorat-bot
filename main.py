@@ -272,25 +272,35 @@ async def set_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     text = update.message.text.strip()
-
     state = user_states.get(user_id)
     if not state:
-        return  # اگر وضعیت خاصی تنظیم نشده بود، هیچی نگو
+        return
 
+    # حالت تنظیم تعداد تغییر سوال
     if state.get("setting_change_limit"):
         if text.isdigit() and int(text) > 0:
-            # باید بازی‌ای که کاربر در آن سازنده است را پیدا کنیم
             for chat_id, game in games.items():
                 if game['creator'] == user_id:
                     game['change_limit'] = int(text)
                     await update.message.reply_text(f"تعداد دفعات مجاز تغییر سوال به {text} تنظیم شد.")
-                    user_states.pop(user_id)  # حذف وضعیت
+                    user_states.pop(user_id)
                     return
             await update.message.reply_text("شما در هیچ بازی‌ای سازنده نیستید.")
         else:
             await update.message.reply_text("لطفاً یک عدد صحیح بزرگ‌تر از صفر ارسال کنید.")
         return
 
+    # حالت اضافه‌کردن سوال جدید
+    if state.get("state") == "awaiting_question":
+        q_type = state.get("question_type")
+        file_path = "dare.txt" if q_type == "dare" else "truth.txt"
+        with open(file_path, "a", encoding="utf-8") as f:
+            f.write(text + "\n")
+        global truth_questions, dare_challenges
+        truth_questions, dare_challenges = load_questions()
+        await update.message.reply_text(f"سوال با موفقیت به {'جرأت' if q_type == 'dare' else 'حقیقت'} اضافه شد.")
+        user_states.pop(user_id)
+        return
 
 
 
@@ -299,8 +309,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     keyboard = [
-        [InlineKeyboardButton("➕ اضافه به جرأت", callback_data="add_dare")],
-        [InlineKeyboardButton("➕ اضافه به حقیقت", callback_data="add_truth")]
+        [InlineKeyboardButton(" اضافه به جرأت", callback_data="add_dare")],
+        [InlineKeyboardButton(" اضافه به حقیقت", callback_data="add_truth")]
     ]
     await update.message.reply_text("می‌خوای سوالت رو به کدوم بخش اضافه کنی؟", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -312,24 +322,6 @@ async def add_question_choice(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.message.edit_text(f"لطفاً سوال جدید برای {'جرأت' if q_type == 'dare' else 'حقیقت'} را ارسال کن:")
     await query.answer()
 
-# --- مدیریت متن ارسالی کاربران ---
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    text = update.message.text.strip()
-    state = user_states.get(user_id)
-    if not state:
-        return
-
-    if state.get("state") == "awaiting_question":
-        q_type = state.get("question_type")
-        file_path = "dare.txt" if q_type == "dare" else "truth.txt"
-        with open(file_path, "a", encoding="utf-8") as f:
-            f.write(text + "\n")
-        global truth_questions, dare_challenges
-        truth_questions, dare_challenges = load_questions()
-        await update.message.reply_text(f"سوال با موفقیت به {'جرأت' if q_type == 'dare' else 'حقیقت'} اضافه شد ✅")
-        user_states.pop(user_id)
-        return
 
 
 
