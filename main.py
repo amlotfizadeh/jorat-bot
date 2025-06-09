@@ -238,9 +238,9 @@ async def set_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     game = get_game(chat_id)
 
     # فقط سازنده اجازه تغییر تنظیمات را دارد
-    if game['creator'] != user_id:
-        await update.message.reply_text("فقط سازنده بازی می‌تواند تنظیمات را تغییر دهد.")
-        return
+    #if game['creator'] != user_id:
+        #await update.message.reply_text("فقط سازنده بازی می‌تواند تنظیمات را تغییر دهد.")
+        #return
 
     keyboard = [
         [InlineKeyboardButton("افزودن سوال جدید", callback_data='set_افزودن_سوال')],
