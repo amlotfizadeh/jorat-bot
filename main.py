@@ -238,12 +238,11 @@ async def set_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     game = get_game(chat_id)
 
     # فقط سازنده اجازه تغییر تنظیمات را دارد
-    #if game['creator'] != user_id:
-        #await update.message.reply_text("فقط سازنده بازی می‌تواند تنظیمات را تغییر دهد.")
-        #return
+    if game['creator'] != user_id:
+        await update.message.reply_text("فقط سازنده بازی می‌تواند تنظیمات را تغییر دهد.")
+        return
 
     keyboard = [
-        [InlineKeyboardButton("افزودن سوال جدید", callback_data='set_افزودن_سوال')],
         [InlineKeyboardButton(f"تعیین تعداد تغییر سوال (فعلی: {game.get('change_limit', DEFAULT_CHANGE_LIMIT)})", callback_data='set_تغییر_تعداد')],
         [InlineKeyboardButton("پاک کردن بازی", callback_data='set_پاک_کردن_بازی')]
     ]
@@ -256,17 +255,9 @@ async def set_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     chat_id = query.message.chat_id
     game = get_game(chat_id)
 
-    #if user_id != game['creator']:
-        #await query.answer("فقط سازنده بازی اجازه استفاده از این پنل را دارد.", show_alert=True)
-        #return
-
-    if query.data == 'set_افزودن_سوال':
-        keyboard = [
-            [InlineKeyboardButton("اضافه کردن به حقیقت", callback_data='اضافه_حقیقت')],
-            [InlineKeyboardButton("اضافه کردن به جرأت", callback_data='اضافه_جرأت')]
-        ]
-        await query.message.edit_text("کدام دسته سوال را می‌خواهید اضافه کنید؟", reply_markup=InlineKeyboardMarkup(keyboard))
-        await query.answer()
+    if user_id != game['creator']:
+        await query.answer("فقط سازنده بازی اجازه استفاده از این پنل را دارد.", show_alert=True)
+        return
 
     elif query.data == 'set_تغییر_تعداد':
         await query.message.edit_text("لطفاً تعداد دفعات مجاز تغییر سوال را (عدد صحیح) ارسال کنید:")
@@ -282,73 +273,69 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     text = update.message.text.strip()
 
-    # اگر کاربر در حال اضافه کردن سوال است
-    if user_id in user_states:
-        state = user_states[user_id]
+    state = user_states.get(user_id)
+    if not state:
+        return  # اگر وضعیت خاصی تنظیم نشده بود، هیچی نگو
 
-        if state.get("adding_to") in ["truth", "dare"]:
-            category = state["adding_to"]
-            filename = "truth.txt" if category == "truth" else "dare.txt"
-
-            with open(filename, "a", encoding="utf-8") as f:
-                f.write(text + "\n")
-
-            global truth_questions, dare_challenges
-            truth_questions, dare_challenges = load_questions()
-
-            await update.message.reply_text(f"سوال شما به دسته {'حقیقت' if category=='truth' else 'جرأت'} اضافه شد.")
-            user_states.pop(user_id)
-            return
-
-        if state.get("setting_change_limit"):
-            if text.isdigit() and int(text) > 0:
-                # باید بازی سازنده را پیدا کنیم (به ازای گروه)
-                for chat_id, game in games.items():
-                    if game['creator'] == user_id:
-                        game['change_limit'] = int(text)
-                        await update.message.reply_text(f"تعداد دفعات مجاز تغییر سوال به {text} تنظیم شد.")
-                        user_states.pop(user_id)
-                        return
-                await update.message.reply_text("شما در هیچ بازی سازنده نیستید.")
-            else:
-                await update.message.reply_text("لطفاً یک عدد صحیح بزرگتر از صفر ارسال کنید.")
-            return
-
-    # اگر در حالت معمولی است، نادیده گرفته شود یا پیام عادی باشد
-
-# حذف کامل دستورات /add و /clear
-
-# پایان بازی
-async def finish_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-
-    game = get_game(chat_id)
-
-    if game['creator'] != user_id:
-        await update.message.reply_text("فقط سازنده بازی می‌تونه بازی رو پایان بده.")
+    if state.get("setting_change_limit"):
+        if text.isdigit() and int(text) > 0:
+            # باید بازی‌ای که کاربر در آن سازنده است را پیدا کنیم
+            for chat_id, game in games.items():
+                if game['creator'] == user_id:
+                    game['change_limit'] = int(text)
+                    await update.message.reply_text(f"تعداد دفعات مجاز تغییر سوال به {text} تنظیم شد.")
+                    user_states.pop(user_id)  # حذف وضعیت
+                    return
+            await update.message.reply_text("شما در هیچ بازی‌ای سازنده نیستید.")
+        else:
+            await update.message.reply_text("لطفاً یک عدد صحیح بزرگ‌تر از صفر ارسال کنید.")
         return
 
+
+
+
+
+
+async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
     keyboard = [
-        [InlineKeyboardButton("بله، پایان بده", callback_data='تأیید_پایان')],
-        [InlineKeyboardButton("لغو", callback_data='لغو_پایان')]
+        [InlineKeyboardButton("➕ اضافه به جرأت", callback_data="add_dare")],
+        [InlineKeyboardButton("➕ اضافه به حقیقت", callback_data="add_truth")]
     ]
-    await update.message.reply_text("آیا مطمئنید می‌خواهید بازی را پایان دهید؟", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text("می‌خوای سوالت رو به کدوم بخش اضافه کنی؟", reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def finish_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def add_question_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    chat_id = query.message.chat_id
     user_id = query.from_user.id
-    game = get_game(chat_id)
+    q_type = query.data.split("_")[1]  # dare یا truth
+    user_states[user_id] = {"state": "awaiting_question", "question_type": q_type}
+    await query.message.edit_text(f"لطفاً سوال جدید برای {'جرأت' if q_type == 'dare' else 'حقیقت'} را ارسال کن:")
+    await query.answer()
 
-    if query.data == 'تأیید_پایان':
-        if game['creator'] == user_id:
-            games.pop(chat_id, None)
-            await query.message.edit_text("بازی پایان یافت.")
-        else:
-            await query.answer("فقط سازنده می‌تواند بازی را پایان دهد.", show_alert=True)
-    else:
-        await query.message.delete()
+# --- مدیریت متن ارسالی کاربران ---
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    text = update.message.text.strip()
+    state = user_states.get(user_id)
+    if not state:
+        return
+
+    if state.get("state") == "awaiting_question":
+        q_type = state.get("question_type")
+        file_path = "dare.txt" if q_type == "dare" else "truth.txt"
+        with open(file_path, "a", encoding="utf-8") as f:
+            f.write(text + "\n")
+        global truth_questions, dare_challenges
+        truth_questions, dare_challenges = load_questions()
+        await update.message.reply_text(f"سوال با موفقیت به {'جرأت' if q_type == 'dare' else 'حقیقت'} اضافه شد ✅")
+        user_states.pop(user_id)
+        return
+
+
+
+
+
+
 
 # ثبت هندلرها
 def main():
@@ -366,9 +353,11 @@ def main():
     app.add_handler(CallbackQueryHandler(set_button_handler, pattern="^set_.*$|^اضافه_.*$|^set_پاک_کردن_بازی$"))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
 
-    app.add_handler(CommandHandler("finish", finish_command))
-    app.add_handler(CallbackQueryHandler(finish_confirm, pattern="^(تأیید_پایان|لغو_پایان)$"))
 
+
+    app.add_handler(CommandHandler("add", add_command))
+    app.add_handler(CallbackQueryHandler(add_question_choice, pattern="^add_(dare|truth)$"))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
     app.run_polling()
 
 if __name__ == '__main__':
