@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 #from telegram.request import HTTPXRequest
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")
 
 
 logging.basicConfig(level=logging.INFO)
