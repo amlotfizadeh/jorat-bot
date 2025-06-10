@@ -6,7 +6,7 @@ from telegram.ext import (
     ContextTypes, MessageHandler, filters
 )
 
-TOKEN = "7611408660:AAH9fAiPglhU4ldLCLhwFt4_3qvTiFZhTbw"  # توکن خودت رو بذار
+TOKEN = "7611408660:AAH9fAiPglhU4ldLCLhwFt4_3qvTiFZhTbws"  # توکن خودت رو بذار
 
 logging.basicConfig(level=logging.INFO)
 
