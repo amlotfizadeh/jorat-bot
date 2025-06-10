@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 #from telegram.request import HTTPXRequest
 
-#TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+#TOKEN = os.getenv("BOT_TOKEN")
 TOKEN = "7611408660:AAH9fAiPglhU4ldLCLhwFt4_3qvTiFZhTbw"
 
 logging.basicConfig(level=logging.INFO)
@@ -482,6 +482,9 @@ def main():
     app.add_handler(CommandHandler("add", add_command))
     app.add_handler(CallbackQueryHandler(add_question_choice, pattern="^add_(dare|truth)$"))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
+
+    app.add_handler(CallbackQueryHandler(set_button_handler, pattern="^set_"))
+    
     app.run_polling()
 
 if __name__ == '__main__':
