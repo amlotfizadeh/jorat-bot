@@ -8,8 +8,8 @@ from telegram.ext import (
 )
 #from telegram.request import HTTPXRequest
 
-TOKEN = os.getenv("BOT_TOKEN")
-
+#TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TOKEN = "7611408660:AAH9fAiPglhU4ldLCLhwFt4_3qvTiFZhTbw"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -477,7 +477,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
 
     app.add_handler(CallbackQueryHandler(game_settings_buttons, pattern="^(تعیین_تعداد|پایان_بازی)$"))
-    app.add_handler(CallbackQueryHandler(review_question_handler, pattern="^(confirm|reject|edit)_(dare|truth)?_?\d+$"))
+    app.add_handler(CallbackQueryHandler(review_question_handler, pattern=r"^(confirm|reject|edit)_(dare|truth)?_?\d+$"))
 
     app.add_handler(CommandHandler("add", add_command))
     app.add_handler(CallbackQueryHandler(add_question_choice, pattern="^add_(dare|truth)$"))
