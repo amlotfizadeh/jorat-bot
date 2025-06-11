@@ -8,7 +8,7 @@ from telegram.ext import (
 from telegram.request import HTTPXRequest
 
 #TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TOKEN = "7611408660:AAH9fAiPglhU4ldLCLhwFt4_3qvTiFZhTbw"
+TOKEN = "7539555413:AAHERH7WDI03M9KuQo_qd4wKL2KT4wvsjRs"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -78,8 +78,6 @@ async def new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     user_name = query.from_user.first_name
 
-
-
     if chat_id in games and games[chat_id]['state'] == 'started':
         await query.answer("بازی در حال حاضر در جریان است. ابتدا بازی فعلی را تمام کنید.", show_alert=True)
         return
@@ -90,12 +88,12 @@ async def new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'state': 'waiting',
         'used_change': {user_id: 0},
         'change_limit': DEFAULT_CHANGE_LIMIT,
-        'message_id': None,
+        'message_id': query.message.message_id, 
         'current_index': 0,
         'current_msg_id': None,
         'current_question_type': None,
         'current_user': None,
-        'used_questions': {}, 
+        'used_questions': {},
     }
     game = games[chat_id]
 
@@ -107,8 +105,7 @@ async def new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("شروع بازی", callback_data='شروع_بازی')]
     ]
 
-    sent_msg = await context.bot.send_message(chat_id, text, reply_markup=InlineKeyboardMarkup(keyboard))
-    game['message_id'] = sent_msg.message_id
+    await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     await query.answer()
 
 
@@ -200,9 +197,6 @@ async def game_settings_buttons(update: Update, context: ContextTypes.DEFAULT_TY
         games.pop(chat_id, None)
         await query.message.edit_text("بازی با موفقیت به پایان رسید. می‌توانید بازی جدیدی شروع کنید.")
         await query.answer()
-
-
-
 
 
 
@@ -419,9 +413,6 @@ async def review_question_handler(update: Update, context: ContextTypes.DEFAULT_
         await query.answer()
 
 
-
-
-
 async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     keyboard = [
@@ -437,9 +428,6 @@ async def add_question_choice(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_states[user_id] = {"state": "awaiting_question", "question_type": q_type}
     await query.message.edit_text(f"لطفاً سوال جدید برای {'جرأت' if q_type == 'dare' else 'حقیقت'} را ارسال کن:")
     await query.answer()
-
-
-
 
 
 
