@@ -1,15 +1,14 @@
 import logging
 import random
-import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     ContextTypes, MessageHandler, filters
 )
-#from telegram.request import HTTPXRequest
+from telegram.request import HTTPXRequest
 
-#TOKEN = os.getenv("BOT_TOKEN")
-TOKEN = "7611408660:AAH9fAiPglhU4ldLCLhwFt4_3qvTiFZhTbw"
+#TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TOKEN = "7539555413:AAHERH7WDI03M9KuQo_qd4wKL2KT4wvsjRs"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -39,7 +38,7 @@ def get_game(chat_id):
             'current_index': 0,
             'current_msg_id': None,
             'current_question_type': None,
-            'used_change': {},  # user_id -> تعداد دفعات تغییر سوال استفاده شده
+            'used_change': {}, 
             'change_limit': DEFAULT_CHANGE_LIMIT,
             'message_id': None,
             'current_user': None,
@@ -52,7 +51,6 @@ async def start_game_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
     game = games.get(chat_id)
 
     if game and game['state'] == 'started':
-        # بازی در حال اجرا است، پیام اعضا را با دکمه‌های جدید مجدد ارسال کن
         member_names = []
         for uid in game['members']:
             try:
@@ -80,7 +78,8 @@ async def new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     user_name = query.from_user.first_name
 
-    # اگر بازی در حال اجرا باشد اجازه ساخت بازی جدید نده
+
+
     if chat_id in games and games[chat_id]['state'] == 'started':
         await query.answer("بازی در حال حاضر در جریان است. ابتدا بازی فعلی را تمام کنید.", show_alert=True)
         return
@@ -144,7 +143,6 @@ async def join(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("شروع بازی", callback_data='شروع_بازی')]
     ]
 
-    # **اینجا به جای ارسال پیام جدید، پیام قبلی را ویرایش می‌کنیم**
     await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     await query.answer()
 
@@ -165,7 +163,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     game['state'] = 'started'
     game['current_index'] = 0
 
-    # تغییر دکمه‌های پیام اصلی (حذف نشود)
     member_names = []
     for uid in game['members']:
         try:
@@ -219,7 +216,6 @@ async def send_turn_message(chat_id, context):
          InlineKeyboardButton("حقیقت", callback_data='حقیقت')]
     ]
 
-    # نوبت کاربر با تگ HTML اعلام می‌شود و فقط به همان کاربر اجازه انتخاب دکمه داده می‌شود
     msg = await context.bot.send_message(
         chat_id,
         text=f"نوبت {user.user.mention_html()} است. یکی را انتخاب کن:",
@@ -262,7 +258,7 @@ async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if q is None:
         await query.answer("سؤال جدیدی برای شما باقی نمانده", show_alert=True)
-        return  #  اینجا باید return داخل if باشه
+        return 
 
     keyboard = [
         [InlineKeyboardButton("تغییر سوال", callback_data='تغییر_سوال')],
@@ -317,57 +313,47 @@ async def answered(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_turn_message(chat_id, context)
     await query.answer()
 
-# حذف دستور /add و /clear و اضافه کردن همه به دستور /set
 
-async def set_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    game = get_game(chat_id)
-
-    # فقط سازنده اجازه تغییر تنظیمات را دارد
-    if game['creator'] != user_id:
-        await update.message.reply_text("فقط سازنده بازی می‌تواند تنظیمات را تغییر دهد.")
-        return
-
-    keyboard = [
-        [InlineKeyboardButton(f"تعیین تعداد تغییر سوال (فعلی: {game.get('change_limit', DEFAULT_CHANGE_LIMIT)})", callback_data='set_تغییر_تعداد')],
-        [InlineKeyboardButton("پاک کردن بازی", callback_data='set_پاک_کردن_بازی')]
-    ]
-
-    await update.message.reply_text("پنل تنظیمات بازی:", reply_markup=InlineKeyboardMarkup(keyboard))
-
-async def set_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-    chat_id = query.message.chat_id
-    game = get_game(chat_id)
-
-    if user_id != game['creator']:
-        await query.answer("فقط سازنده بازی اجازه استفاده از این پنل را دارد.", show_alert=True)
-        return
-
-    elif query.data == 'set_تغییر_تعداد':
-        await query.message.edit_text("لطفاً تعداد دفعات مجاز تغییر سوال را (عدد صحیح) ارسال کنید:")
-        user_states[user_id] = {"setting_change_limit": True}
-        await query.answer()
-
-    elif query.data == 'set_پاک_کردن_بازی':
-        games.pop(chat_id, None)
-        await query.message.edit_text("بازی پاک شد. می‌توانید بازی جدید بسازید.")
-        await query.answer()
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
+    chat_id = update.message.chat_id 
     text = update.message.text.strip()
     state = user_states.get(user_id)
+    
     if not state:
         return
 
-    # حالت افزودن سوال جدید
+
+    if state.get("setting_change_limit"):
+        game = get_game(chat_id)
+
+        if user_id != game.get('creator'):
+            await update.message.reply_text("فقط سازنده بازی می‌تواند این تنظیم را تغییر دهد.")
+            user_states.pop(user_id)
+            return
+
+        try:
+            new_limit = int(text)
+            if new_limit < 0:
+                await update.message.reply_text("لطفاً یک عدد مثبت یا صفر وارد کنید.")
+                return
+
+            game['change_limit'] = new_limit
+            await update.message.reply_text(f"تعداد مجاز تغییر سوال با موفقیت به {new_limit} تغییر یافت.")
+            
+            # حتماً وضعیت کاربر را پس از انجام کار پاک کنید
+            user_states.pop(user_id)
+
+        except ValueError:
+            await update.message.reply_text("ورودی نامعتبر است. لطفاً فقط یک عدد صحیح ارسال کنید.")
+        
+        return 
+
+
     if state.get("state") == "awaiting_question":
         q_type = state["question_type"]  # 'dare' یا 'truth'
 
-        # ارسال برای ادمین جهت تأیید
         keyboard = [
             [
                 InlineKeyboardButton(" تأیید", callback_data=f"confirm_{q_type}_{user_id}"),
@@ -384,10 +370,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("سوالت برای بررسی به ادمین ارسال شد.")
         user_states.pop(user_id)
         return
-     # حالت ویرایش توسط ادمین
+
     elif state.get("edit_mode"):
         q_type = state["q_type"]
-        original_text = state["original_text"]
         target_user = state["target_user"]
 
         filename = "dare.txt" if q_type == "dare" else "truth.txt"
@@ -460,7 +445,6 @@ async def add_question_choice(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 #PROXY_URL = 'socks5://127.0.0.1:10808'
-# ثبت هندلرها
 def main():
     #req = HTTPXRequest(proxy_url=PROXY_URL)
     #app = ApplicationBuilder().token(TOKEN).request(req).build()
@@ -481,10 +465,7 @@ def main():
 
     app.add_handler(CommandHandler("add", add_command))
     app.add_handler(CallbackQueryHandler(add_question_choice, pattern="^add_(dare|truth)$"))
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
 
-    app.add_handler(CallbackQueryHandler(set_button_handler, pattern="^set_"))
-    
     app.run_polling()
 
 if __name__ == '__main__':
